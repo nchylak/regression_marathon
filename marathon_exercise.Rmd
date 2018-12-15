@@ -1,0 +1,307 @@
+---
+title: "Impact analysis of the RunPro 3000 on marathon runners' performance"
+author: "Nadia Chylak"
+date: "15 décembre 2018"
+output: 
+  html_document: 
+    keep_md: yes
+    toc: yes
+---
+
+## Introduction
+
+The shoe manufacturer ShoeCo Inc. wants to understand if their newest shoe, the RunPro 3000,
+makes runners faster. In the context of a marathon, they provide 50% of the runners with a free pair of RunPro 3000 on the condition that they wear the shoes during the race.
+
+Statistics are collected on the runners running with a pair of RunPro 3000 and runners running with their usual shoes in order to analyse whether the shoes actually make a difference on their performance. More specifically: 
+
+* Does wearing a pair of RunPro 3000 have a statistically significant impact on runners' performance?
+* If so, is the impact on performance the same for all runners?
+* Can we use the runners' attributes (including whether or not they are wearing a pair of RunPro 3000) to predict how quickly they will finish the marathon?
+
+## Reading and combining the data
+
+### Reading the data
+
+We read the data and have a first look into it.
+```{r, cache=TRUE}
+runners <- read.csv("runner_attributes.csv")
+times <- read.csv("marathon_times.csv")
+```
+
+```{r}
+str(runners)
+```
+
+The `runners` data set is a data frame with `r dim(runners)[1]` observations on `r dim(runners)[2]` variables:
+
+* `ageClass`: the decade (or at times half-decade) corresponding to the runner's age 
+* `sex`: the runner's gender (*M* for man and *W* for woman)
+* `nationality`: the runner's nationality (ISO alpha-3 code)
+* `treatment`: whether the runner wears a pair of RunPro 3000 (*Treatment*) or not (*Control*)
+* `unique_id`: the runner's unique ID.
+
+```{r}
+str(times)
+```
+
+The `times` data set is a data frame with `r dim(times)[1]` observations on `r dim(times)[2]` variables:
+
+* `netTime`: the number of seconds between the runner’s race start and race
+finish 
+* `clockTime`: the marathon clock time in seconds (since the beginning of the race) at the time
+of the runner’s race finish
+* `unique_id`: the runner's unique ID.
+
+The first observations, which we can make, are as follows: 
+
+* In order to know the attributes of the particular runner achieving a certain time, we need to link the two data sets together (potentially with `unique_ID`).
+* There are less observations in the `times` data set than in the `runners` data set. This is probably because the runners participating in this study did not all in the end participate in (or finish) the race.
+* We are not interested in the `clockTime` variable as we are only interested in runners' performances, which is recorded with the `netTime` variable (time elapsed between the time the runner crosses the start and finish lines).
+
+### Combining the data
+
+The first problem we encounter is that `unique_id` is actually not unique.
+
+```{r}
+freq_id_runners <- table(runners$unique_id)
+length(freq_id_runners[freq_id_runners>1]) # number of unique IDs with more than one occurence
+freq_id_times <- table(times$unique_id)
+length(freq_id_times[freq_id_times>1]) # number of unique IDs with more than one occurence
+runners[runners$unique_id == "bcde089300b64521291d157c2148e80415058078",]
+times[times$unique_id == "bcde089300b64521291d157c2148e80415058078",]
+```
+
+It seems that `unique_id` indeed relates to a particular individual, however, this individual may at times be wearing the RunPro 3000 and at other times not. The multiple entries per runner are therefore not pure duplicates and it is therefore not possible to link times to inviduals based on `unique_id`.
+
+Rows on rows, 'unique_id' seems however to match each other:
+
+```{r}
+matching_ids <- runners$unique_id[1:dim(times)[1]] == times$unique_id # We need to reduce the vector for runners to the number of rows in times
+table(matching_ids)
+```
+
+`unique_id` is identical between the first `r dim(times)[1]` rows of `runners` and the rows of `times`. We need to let go of the last `r 30923-30373` rows of `runners`, however, as we do not lose any information on performance, that is alright for the purpose of our analysis.
+
+We therefore combine the two data sets with a simple bind:
+
+```{r}
+runners_with_times <- runners[1:dim(times)[1],-5] # Remove unique_id to avoid duplicated columns
+runners_times <- cbind(runners_with_times, times)
+```
+
+## Cleaning and pre-processing the data
+
+### Factor variables
+
+#### Age
+
+```{r}
+table(runners_times$ageClass)
+```
+
+The variable age is a factor variable, however, it may be interesting to use it as a continuous variable for the purpose of our analysis as age is normally continuous. For the age category `U20` (under 20 years old), it is reasonable to assume that these runners should be at least 18 years old as there is probably an age limit for participating in a marathon.
+
+```{r, warning=FALSE}
+age <- as.numeric(levels(runners_times$ageClass))[runners_times$ageClass]
+age[is.na(age)] <- 18 # U20 became NA
+runners_times$age <- age
+```
+
+#### Other factor variables
+
+```{r}
+table(runners_times$sex)
+table(runners_times$nationality)
+table(runners_times$treatment)
+```
+
+The other variables are real categorical variables and look fine.
+
+### Numeric variables
+
+The only numeric variable of interest to us is the `netTime` variable.
+
+```{r}
+summary(runners_times$netTime)
+sum(is.na(runners_times$netTime))
+```
+
+There are no missing values, however, some values are negative, which cannot be possible. We delete these records as they may negatively impact our analysis.
+
+```{r}
+runners_times <- runners_times[runners_times$netTime > 0,]
+```
+
+## Exploratory data analysis
+
+```{r, fig.width=10}
+library(ggplot2)
+library(gridExtra)
+g1 <- ggplot(runners_times, aes(x=treatment, y=netTime, color=treatment)) + 
+      geom_boxplot()
+g2 <- ggplot(runners_times, aes(x=sex, y=netTime, color=sex)) + 
+      geom_boxplot() + facet_grid(.~treatment)
+grid.arrange(g1, g2, nrow = 1)
+```
+
+First of all, it seems that wearing a pair of RunPro 3000 does not impact performance when ignoring other factors such as gender, age, etc. as the average `netTime` of the treatment group is about the same as the one of the control group.
+
+Wearing a pair of RunPro 3000 also seems not to impact the performance of male runners, nevertheless, it seems that female runners are performing slightly worse when wearing a pair of RunPro 3000. As part of this second plot, one can also see that sex may be a driver of performance as men seem to generally perform better than women (shorter `netTime`).
+
+```{r, fig.height=5, warning=FALSE}
+g3 <- ggplot(runners_times, aes(x=age, y=netTime, color=treatment)) + 
+       geom_point(shape=1) + geom_smooth(method = "lm") + ylim(6000, 28000) 
+g3
+```
+
+In this third plot, it first looks like that, for some age categories, wearing a pair of RunPro 3000 positively affects performance (e.g. for ages ranging from 30 to 45). However the two corresponding fitted lines are almost superposed, rather indicating that there is no relationship. Age, on the other hand, seems to be a driver of performance as performance seems to generally decrease as age increases.
+
+```{r, fig.width=10}
+runners_times_USAETH <- runners_times[runners_times$nationality == "DEU" | runners_times$nationality == "DNK" | runners_times$nationality == "KEN", ]
+g4 <- ggplot(runners_times_USAETH, aes(x=nationality, y=netTime, color=nationality)) + 
+      geom_boxplot() + facet_grid(.~treatment)
+g4
+```
+
+For plotting the impact of the RunPro 3000 shoes on performance according to nationality, it is difficult to represent all nationalities. We therefore select the German and Danish nationalities as these have the greatest number of participants. We also select Kenya as it is a known fact that Kenyan runners typically perform well at marathon races.
+
+In this last plot, we see again that wearing a pair of RunPro 3000 does not seem to impact performance (positively or negatively). On the other hand, nationality may play some role as one can see that Kenyan runners generally perform better than German or Danish runners. We should however remain cautious of the significance of this observation as there are only 12 Kenyan runners for 20909 German runners.
+
+## Hypothesis testing
+
+We will perform a couple of t-tests in order to verify some of the observations made above:
+
+* There is no difference in performance between runners wearing a pair of RunPro 3000 and runners not wearing a pair of RunPro 3000.
+* There is a difference in performance between *female* runners wearing a pair of RunPro 3000 and *female* runners not wearing a pair of RunPro 3000.
+
+For our t-tests, we need to make the following assumptions: 
+
+* `netTime` is approximately normally distributed within the population of runners.
+* Our sample is a simple random sample, i.e. the data is collected from a randomly selected portion of the total population of runners. Note: This assumption is probably not verified as the marathon is apparently taking place in Germany and that, as a consequence, other geographical provenances (and thus ethnic provenances) are under-represented.
+
+```{r}
+treatment <- runners_times[runners_times$treatment == "Treatment",]
+control <- runners_times[runners_times$treatment == "Control",]
+tTest1 <- t.test(treatment$netTime, control$netTime, paired = FALSE , var.equal = FALSE, conf.level = 0.95)
+tTest1$p.value
+tTest1$conf.int[1:2]
+```
+
+Contrary to what we were assuming, there is a statistically significant difference (p-value < 0.05 and confidence interval excluding zero) in the mean of `netTime` for runners wearing a pair of RunPro 3000 and runners not wearing a pair of RunPro 3000, whereby it seems that **wearing a pair of RunPro 3000 negatively affects performance**. We note however that the impact seems to be rather minimal as the confidence interval is only `r round(tTest1$conf.int[1],2)` *seconds* above zero.
+
+```{r}
+treatment_w <- runners_times[runners_times$treatment == "Treatment" & runners_times$sex == "W",]
+control_w <- runners_times[runners_times$treatment == "Control" & runners_times$sex == "W",]
+tTest2 <- t.test(treatment_w$netTime, control_w$netTime, paired = FALSE , var.equal = FALSE, conf.level = 0.95)
+tTest2$p.value
+tTest2$conf.int[1:2]
+```
+
+With this second t-test, we are showing that **the impact observed above is a lot stronger amongst female runners** with a much lower p-value and the lower end of our confidence interval being further away from zero (of about 18 minutes).
+
+## Model fitting
+
+As part of the above observations and analyses, we saw that the main drivers of performance seemed to be:
+
+* Age: negatively related to performance (i.e. postively related to `netTime`)
+* Being a female runner: negatively related to performance (i.e. postively related to `netTime`)
+* Wearing a pair of RunPro 3000: negatively related to performance (i.e. postively related to `netTime`).
+
+We can now fit a model to verify these relationships, but first need to isolate part of the data for testing purposes.
+
+```{r, message=FALSE}
+library(caret)
+set.seed(123)
+in_training <- createDataPartition(y=runners_times$netTime, p=0.7, list = FALSE)
+training <- runners_times[in_training,]
+testing <- runners_times[-in_training,]
+```
+
+### Linear model including treatment but excluding nationality
+
+We now fit a first model with the above three regressors.
+
+```{r}
+fit1 <- lm(netTime ~ age + sex + treatment, data = training)
+summary(fit1)$coefficients
+```
+
+This seems to be a first good model as all coefficients are statistically significant (p-values < 0.05). The value of the coefficients is also about what we were expecting:
+
+* Being a female runner is what affects performance the most, whereby with `age` and `treatment` remaining constant, being a female runner increases `netTime` by about 38 minutes.
+* Age plays a less important role than what one would typically expect (slope of only about 32 seconds)
+* Wearing a pair of RunPro 3000 negatively affects performance but not by much (slope of only about 2 minutes).
+
+In order to be able to validate the above inferences made on the slopes of our model, we should also perform some diagnostics on the residuals:
+
+```{r, fig.height=4, fig.width=8}
+par(mfrow=c(1,2))
+plot(x=fitted(fit1), y=residuals(fit1), xlab="Fitted values", ylab="Residuals", main = "Residuals vs. Fitted values")
+abline(0, 0, col="red", lwd=2)  
+qqnorm(summary(fit1)$residuals)
+qqline(summary(fit1)$residuals, col = "red")
+```
+
+The above plots further confirm the validity of our model as: 
+
+* By plotting residuals vs. fitted values, we see that residuals are spread fairly randomly around the 0 line indicating that the relationship between our outcome and our predictors is rather linear.
+* By plotting a QQ-plot, we confirm that the error is fairly normally distributed (apart from the tails).
+
+Lastly, we can test the prediction accuracy of our model against the `testing` data set.
+
+```{r}
+predicted_netTime <- predict(fit1, testing)
+rmse <- RMSE(predicted_netTime, testing$netTime)
+rmse
+```
+
+The root mean squared error amounts to `r round(rmse,2)` seconds, which is about 46 minutes.
+
+### Linear model including treatment and nationality
+
+We can now try to also include the nationality to see if this improves our model.
+
+```{r}
+fit2 <- lm(netTime ~ age + sex + treatment + nationality, data = training)
+summary(fit2)$coefficients
+```
+
+The coefficients for `age`, `sex` and `treatment` remain statistically significant and substantially the same as before. The coefficients for the different nationalities are not statistically significant, however, when testing the prediction accuracy of this second linear model against the `testing` data set, we find better results (lower root mean squared error). 
+
+```{r}
+unique_nat_train <- unique(training$nationality)
+unique_nat_test <- unique(testing$nationality)
+missing_nat_in_train <- unique_nat_test[!(unique_nat_test %in% unique_nat_train)]
+testing_bis <- testing[!(testing$nationality %in% missing_nat_in_train),]
+predicted_netTime2 <- predict(fit2, testing_bis)
+RMSE(predicted_netTime2, testing_bis$netTime)
+```
+
+We note that, since not all nationalities were present in the `training` data set due to the data partition into `training` and `testing`, we also needed to remove these from the `testing` data set as the fitted model (trained on the `training` data set where these nationalities were absent) does not have coefficients for them.
+
+### Linear model including nationality but excluding treatment
+
+Lastly, as the impact of wearing a pair of RunPro 3000 seems to be rather low, we try a model including `nationality` but excluding `treatment`.
+
+```{r}
+fit3 <- lm(netTime ~ age + sex + nationality, data = training)
+summary(fit3)$coefficients
+```
+
+As expected, the coefficients for `age` and `sex` do not change much and remain statistically significant.
+
+```{r}
+predicted_netTime3 <- predict(fit3, testing_bis)
+RMSE(predicted_netTime3, testing_bis$netTime)
+```
+
+The prediction accuracy of the model does not improve nor worsen in comparison to the same model including `treatment`, which is another indicator that the impact of `treatment` on performance is very minimal.
+
+## Conlusion
+
+As part of the above analysis, we could demonstrate that:
+
+* If anything, wearing a pair of RunPro 3000 rather negatively impacts runners' performance.
+* The negative impact of wearing a pair of RunPro 3000 is stronger for female runners.
+* Age, gender and nationality seem to be better predictors of a runner's performance, regardless of whether the runner wears a pair of RunPro 3000 or not.
