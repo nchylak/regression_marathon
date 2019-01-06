@@ -1,5 +1,5 @@
 ---
-title: "Impact analysis of the RunPro 3000 on marathon runners' performance"
+title: "Impact analysis of the SuperSneakers 101 on marathon runners' performance"
 author: "Nadia Chylak"
 date: "15 décembre 2018"
 output: 
@@ -10,14 +10,14 @@ output:
 
 ## Introduction
 
-The shoe manufacturer ShoeCo Inc. wants to understand if their newest shoe, the RunPro 3000,
-makes runners faster. In the context of a marathon, they provide 50% of the runners with a free pair of RunPro 3000 on the condition that they wear the shoes during the race.
+The shoe manufacturer ShoeCo Inc. wants to understand if their newest shoe, the SuperSneakers 101,
+makes runners faster. In the context of a marathon, they provide 50% of the runners with a free pair of SuperSneakers 101 on the condition that they wear the shoes during the race.
 
-Statistics are collected on the runners running with a pair of RunPro 3000 and runners running with their usual shoes in order to analyse whether the shoes actually make a difference on their performance. More specifically: 
+Statistics are collected on the runners running with a pair of SuperSneakers 101 and runners running with their usual shoes in order to analyse whether the shoes actually make a difference on their performance. More specifically: 
 
-* Does wearing a pair of RunPro 3000 have a statistically significant impact on runners' performance?
+* Does wearing a pair of SuperSneakers 101 have a statistically significant impact on runners' performance?
 * If so, is the impact on performance the same for all runners?
-* Can we use the runners' attributes (including whether or not they are wearing a pair of RunPro 3000) to predict how quickly they will finish the marathon?
+* Can we use the runners' attributes (including whether or not they are wearing a pair of SuperSneakers 101) to predict how quickly they will finish the marathon?
 
 ## Reading and combining the data
 
@@ -38,7 +38,7 @@ The `runners` data set is a data frame with `r dim(runners)[1]` observations on 
 * `ageClass`: the decade (or at times half-decade) corresponding to the runner's age 
 * `sex`: the runner's gender (*M* for man and *W* for woman)
 * `nationality`: the runner's nationality (ISO alpha-3 code)
-* `treatment`: whether the runner wears a pair of RunPro 3000 (*Treatment*) or not (*Control*)
+* `treatment`: whether the runner wears a pair of SuperSneakers 101 (*Treatment*) or not (*Control*)
 * `unique_id`: the runner's unique ID.
 
 ```{r}
@@ -72,7 +72,7 @@ runners[runners$unique_id == "bcde089300b64521291d157c2148e80415058078",]
 times[times$unique_id == "bcde089300b64521291d157c2148e80415058078",]
 ```
 
-It seems that `unique_id` indeed relates to a particular individual, however, this individual may at times be wearing the RunPro 3000 and at other times not. The multiple entries per runner are therefore not pure duplicates and it is therefore not possible to link times to inviduals based on `unique_id`.
+It seems that `unique_id` indeed relates to a particular individual, however, this individual may at times be wearing the SuperSneakers 101 and at other times not. The multiple entries per runner are therefore not pure duplicates and it is therefore not possible to link times to inviduals based on `unique_id`.
 
 Rows on rows, 'unique_id' seems however to match each other:
 
@@ -145,9 +145,9 @@ g2 <- ggplot(runners_times, aes(x=sex, y=netTime, color=sex)) +
 grid.arrange(g1, g2, nrow = 1)
 ```
 
-First of all, it seems that wearing a pair of RunPro 3000 does not impact performance when ignoring other factors such as gender, age, etc. as the average `netTime` of the treatment group is about the same as the one of the control group.
+First of all, it seems that wearing a pair of SuperSneakers 101 does not impact performance when ignoring other factors such as gender, age, etc. as the average `netTime` of the treatment group is about the same as the one of the control group.
 
-Wearing a pair of RunPro 3000 also seems not to impact the performance of male runners, nevertheless, it seems that female runners are performing slightly worse when wearing a pair of RunPro 3000. As part of this second plot, one can also see that sex may be a driver of performance as men seem to generally perform better than women (shorter `netTime`).
+Wearing a pair of SuperSneakers 101 also seems not to impact the performance of male runners, nevertheless, it seems that female runners are performing slightly worse when wearing a pair of SuperSneakers 101. As part of this second plot, one can also see that sex may be a driver of performance as men seem to generally perform better than women (shorter `netTime`).
 
 ```{r, fig.height=5, warning=FALSE}
 g3 <- ggplot(runners_times, aes(x=age, y=netTime, color=treatment)) + 
@@ -155,7 +155,7 @@ g3 <- ggplot(runners_times, aes(x=age, y=netTime, color=treatment)) +
 g3
 ```
 
-In this third plot, it first looks like that, for some age categories, wearing a pair of RunPro 3000 positively affects performance (e.g. for ages ranging from 30 to 45). However the two corresponding fitted lines are almost superposed, rather indicating that there is no relationship. Age, on the other hand, seems to be a driver of performance as performance seems to generally decrease as age increases.
+In this third plot, it first looks like that, for some age categories, wearing a pair of SuperSneakers 101 positively affects performance (e.g. for ages ranging from 30 to 45). However the two corresponding fitted lines are almost superposed, rather indicating that there is no relationship. Age, on the other hand, seems to be a driver of performance as performance seems to generally decrease as age increases.
 
 ```{r, fig.width=10}
 runners_times_USAETH <- runners_times[runners_times$nationality == "DEU" | runners_times$nationality == "DNK" | runners_times$nationality == "KEN", ]
@@ -164,16 +164,16 @@ g4 <- ggplot(runners_times_USAETH, aes(x=nationality, y=netTime, color=nationali
 g4
 ```
 
-For plotting the impact of the RunPro 3000 shoes on performance according to nationality, it is difficult to represent all nationalities. We therefore select the German and Danish nationalities as these have the greatest number of participants. We also select Kenya as it is a known fact that Kenyan runners typically perform well at marathon races.
+For plotting the impact of the SuperSneakers 101 shoes on performance according to nationality, it is difficult to represent all nationalities. We therefore select the German and Danish nationalities as these have the greatest number of participants. We also select Kenya as it is a known fact that Kenyan runners typically perform well at marathon races.
 
-In this last plot, we see again that wearing a pair of RunPro 3000 does not seem to impact performance (positively or negatively). On the other hand, nationality may play some role as one can see that Kenyan runners generally perform better than German or Danish runners. We should however remain cautious of the significance of this observation as there are only 12 Kenyan runners for 20909 German runners.
+In this last plot, we see again that wearing a pair of SuperSneakers 101 does not seem to impact performance (positively or negatively). On the other hand, nationality may play some role as one can see that Kenyan runners generally perform better than German or Danish runners. We should however remain cautious of the significance of this observation as there are only 12 Kenyan runners for 20909 German runners.
 
 ## Hypothesis testing
 
 We will perform a couple of t-tests in order to verify some of the observations made above:
 
-* There is no difference in performance between runners wearing a pair of RunPro 3000 and runners not wearing a pair of RunPro 3000.
-* There is a difference in performance between *female* runners wearing a pair of RunPro 3000 and *female* runners not wearing a pair of RunPro 3000.
+* There is no difference in performance between runners wearing a pair of SuperSneakers 101 and runners not wearing a pair of SuperSneakers 101.
+* There is a difference in performance between *female* runners wearing a pair of SuperSneakers 101 and *female* runners not wearing a pair of SuperSneakers 101.
 
 For our t-tests, we need to make the following assumptions: 
 
@@ -188,7 +188,7 @@ tTest1$p.value
 tTest1$conf.int[1:2]
 ```
 
-Contrary to what we were assuming, there is a statistically significant difference (p-value < 0.05 and confidence interval excluding zero) in the mean of `netTime` for runners wearing a pair of RunPro 3000 and runners not wearing a pair of RunPro 3000, whereby it seems that **wearing a pair of RunPro 3000 negatively affects performance**. We note however that the impact seems to be rather minimal as the confidence interval is only `r round(tTest1$conf.int[1],2)` *seconds* above zero.
+Contrary to what we were assuming, there is a statistically significant difference (p-value < 0.05 and confidence interval excluding zero) in the mean of `netTime` for runners wearing a pair of SuperSneakers 101 and runners not wearing a pair of SuperSneakers 101, whereby it seems that **wearing a pair of SuperSneakers 101 negatively affects performance**. We note however that the impact seems to be rather minimal as the confidence interval is only `r round(tTest1$conf.int[1],2)` *seconds* above zero.
 
 ```{r}
 treatment_w <- runners_times[runners_times$treatment == "Treatment" & runners_times$sex == "W",]
@@ -206,7 +206,7 @@ As part of the above observations and analyses, we saw that the main drivers of 
 
 * Age: negatively related to performance (i.e. postively related to `netTime`)
 * Being a female runner: negatively related to performance (i.e. postively related to `netTime`)
-* Wearing a pair of RunPro 3000: negatively related to performance (i.e. postively related to `netTime`).
+* Wearing a pair of SuperSneakers 101: negatively related to performance (i.e. postively related to `netTime`).
 
 We can now fit a model to verify these relationships, but first need to isolate part of the data for testing purposes.
 
@@ -231,7 +231,7 @@ This seems to be a first good model as all coefficients are statistically signif
 
 * Being a female runner is what affects performance the most, whereby with `age` and `treatment` remaining constant, being a female runner increases `netTime` by about 38 minutes.
 * Age plays a less important role than what one would typically expect (slope of only about 32 seconds)
-* Wearing a pair of RunPro 3000 negatively affects performance but not by much (slope of only about 2 minutes).
+* Wearing a pair of SuperSneakers 101 negatively affects performance but not by much (slope of only about 2 minutes).
 
 In order to be able to validate the above inferences made on the slopes of our model, we should also perform some diagnostics on the residuals:
 
@@ -282,7 +282,7 @@ We note that, since not all nationalities were present in the `training` data se
 
 ### Linear model including nationality but excluding treatment
 
-Lastly, as the impact of wearing a pair of RunPro 3000 seems to be rather low, we try a model including `nationality` but excluding `treatment`.
+Lastly, as the impact of wearing a pair of SuperSneakers 101 seems to be rather low, we try a model including `nationality` but excluding `treatment`.
 
 ```{r}
 fit3 <- lm(netTime ~ age + sex + nationality, data = training)
@@ -302,6 +302,6 @@ The prediction accuracy of the model does not improve nor worsen in comparison t
 
 As part of the above analysis, we could demonstrate that:
 
-* If anything, wearing a pair of RunPro 3000 rather negatively impacts runners' performance.
-* The negative impact of wearing a pair of RunPro 3000 is stronger for female runners.
-* Age, gender and nationality seem to be better predictors of a runner's performance, regardless of whether the runner wears a pair of RunPro 3000 or not.
+* If anything, wearing a pair of SuperSneakers 101 rather negatively impacts runners' performance.
+* The negative impact of wearing a pair of SuperSneakers 101 is stronger for female runners.
+* Age, gender and nationality seem to be better predictors of a runner's performance, regardless of whether the runner wears a pair of SuperSneakers 101 or not.
